@@ -1,0 +1,174 @@
+CSCC85 - Fundamentals of Robotics and Automated Systems - UTSC
+
+Project 1 - Fault Tolerant Lander Control
+______________________________________________________________________
+
+Team name:
+
+Name 1 (last, first): Pandya, Malhar
+Student number 1: 1005893008
+
+Name 2 (last, first): han, Jackson
+Student number 2: 1005412572
+
+Name 3 (last, first): Liu, Alton
+Student number 3: 1006701222
+
+(special: Lose 5 marks for not completing the above information)
+_______________________________________________________________________
+
+Please note below what parts of your task were completed, and for
+incomplete tasks, give a brief description of progress and how
+you think the task could be completed
+
+a) The program can land the craft safely in mode '1'
+  
+   - for the 'easy.ppm' map (yes/no) yes
+   - for the 'hard.ppm' map (yes/no) yes
+
+   If it fails, describe the conditions in which it fails and how
+   you think this could be resolved
+
+b) The program can land the craft safely in mode '2'
+  
+   - for the 'easy.ppm' map (yes/no) no
+   - for the 'hard.ppm' map (yes/no) no
+
+   If it fails, describe the conditions in which it fails and how
+   you think this could be resolved
+
+   If the angle sensor fails, and we don't have all three thrusters, we rely on rotation to move horizontally.
+   This becomes imprecise if we do not simulate the angle correctly. Our simulation was within 20 degrees of the
+   actual angle, but had a lot of variance. We also attempted to use the path and our (designed) stages of landing to
+   identify and course correct marginally, which also failed to work.
+   We were unable to detect a redundancy for angle sensor, so we suggest having multiple angle sensors.
+   Another case where it fails is when both sensors for either of the two directions fail. Here again, the obvious redundancy
+   for position is velocity, and vice versa, for velocity it is position. We were unable to find a non-cyclic redundancy for these
+   sensors, but we assume it would be via using Range_Dist() for when you lose vertical sensors, and use sonar with crash prevention to
+   essentially "stick to the floor" in case of faulty horizontal sensors.
+
+_______________________________________________________________________
+
+Questions:
+
+(We can ask any team member to explain any of the answers below
+ in terms of your team's solution).
+
+1) What was the impact of having noisy sensors in your ability to
+   determine the state of the craft and ultimately control it 
+   properly?
+
+   Noisy sensors meant that the state of our craft always had some uncertainty,
+   which meant that our controls, which were determined by our perceived state
+   of the craft, were also inaccurate. This meant that we constantly had to
+   reevaluate our state and flight controls so then there wouldn't be a cascade
+   of inaccuracies from both the uncertainty of our state and the noise in the 
+   controls
+
+2) Describe the technique(s) you used to deal with sensor noise
+
+   We sampled each of the sensors multiple times per tick, meaning that we
+   were sampling so fast that the expected sensor readings would not change,
+   but the noise does change. Since we assumed the noise was in a Gaussian
+   distribution, as long as we get enough samples we could simply find the mean
+   of all the samples, and the noise would be close to 0 since the mean of a
+   Gaussian distribution is 0
+
+3) Describe your strategy for dealing with thruster failures
+
+   If a thruster failed, we would assume that only 1 thruster was available,
+   which meant that we would tilt the lander to control movement. To move horizontally,
+   we tiled the craft in such a way that the acceleration
+   from the 1 thruster will cancel out gravitational acceleration while still
+   providing horizonal acceleration. This meant that we were able to direct the
+   craft to move horizontally ONLY or vertically ONLY, which massively simplified
+   the flight control system. We also ran the functioning thruster at half power
+   to cancel out the noise in the thruster controls, which we assumed had a
+   Gaussian distribution. To account for differing max thruster power between
+   the side and main thrusters, we changed the angle to ensure gravity was
+   being canceled out.
+
+4) Describe your strategy for dealing with sensor malfunctions:
+
+   - Position sensors: if the corresponding velocity sensor was available for the
+   failed sensor, we would calculate our position multiplying our incremental velocity
+   with the time between velocity measurements. If velocity data was not available,
+   we would simulate the velocity based on our thruster commands, then calculate
+   position
+   - Velocity sensors: if the corresponding position sensor was available, we would
+   calculate the velocity based on the incremental change in position. If not, we
+   would simulate velocity based on our last known velocity and our current thruster
+   controls
+   - Angle: we would calculate our angle based on the last accurate angle command and
+   add the subsequent angle commands to this value
+   - Sonar: we didn't use sonar for anything so it did not matter to us if this sensor
+   failed
+
+   What if you have multiple failures? what could you do if, for
+   example both position and velocity sensors became inoperative?
+
+   Answered above
+
+5) What was the hardest failure type to deal with (i.e. which is
+   the component, either sensor or control that makes the lander
+   harder to handle?)?
+
+   The angle sensor was the hardest by far as there was no easy, noiseless way
+   to account for this failure.
+
+6) Assume a human pilot was in charge of controlling the craft 
+   (i.e. the pilot has control of thrusters and rotation).
+   How would you change Safety_Override() so that it prevents
+   the pilot from accidentally crashing the lander?
+
+   Safety Override() would have to increase its buffers, and reduce its rate of rotation
+   as there is now a pilot in the craft, meaning we cannot make sudden changes. You would
+   either lock controls or control overcompensation.
+
+   
+7) Do you think it is reasonable to write such a control function?
+   (i.e. a routine that takes control from a human for their
+    own safety)
+
+    It depends on the complexity of the craft. If it is easy for the pilot to control the
+    craft such software is not needed, like in the case of a car. But for bigger, more complex systems,
+    such control functions might be necessary, such as aircrafts.
+
+8) Should the pilot be aware that this software is present?
+   (yes or no, and tell me why you think so!)
+   
+   Yes, in any case, the pilot should know of the software present, and how to deal with issues that might arise
+   from it. An important example would be the MCAS from the boeing 737 MAX.
+
+9) Would you buy/drive a car that you know has control software
+   that will take control from you if it estimates you are
+   doing something dangerous?
+
+   No, because I do not trust the control software more than I trust myself.
+
+10) Can you as an embedded systems designer think of every 
+    possible scenario that could go wrong so as to write 
+    control software that ALWAYS works?
+
+    Never, all component reliabilities are < 1. Therefore the probability
+    that all components fail at once, although miniscule, is non zero.
+________________________________________________________________
+
+Grading:
+
+  * Craft can handle thruster failure : Main thruster           / 10
+  * Side thruster failure is handled                            / 10
+  * Craft can land with only one thruster on hard map           / 10
+  * Compensation for failure in the position sensors (X,Y)      / 10
+  * Compensation for failure of the velocity sensors (X,Y)      / 10
+  * Compensation for failure of the angle sensors               / 10
+  * Compensation for sonar failure                              / 5
+  * Lands with combinations of 2 sensors and at least
+      one thruster failure on hard map                          / 15
+  * Code review and answers in this report                      / 20
+  
+  * BONUS: The lander is crunchy and can handle multiple
+      sensor/engine failures, and still land on hard map        / Up to 15 depending on crunchiness
+
+Total for Project #1				                / 100
+
